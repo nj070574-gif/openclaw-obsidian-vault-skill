@@ -1,0 +1,12 @@
+# ClawHub lockfile (generated on install, not needed in source)
+.clawhub/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
