@@ -74,7 +74,7 @@ Environment=OBSIDIAN_API_KEY=your_api_key_here
 ```
 
 Replace:
-- `YOUR_OBSIDIAN_HOST` — IP address or hostname of the machine running Obsidian (e.g. `192.168.1.50`)
+- `YOUR_OBSIDIAN_HOST` — IP address or hostname of the machine running Obsidian (e.g. `192.0.2.50`)
 - `your_api_key_here` — the key you copied from the plugin settings
 
 Then reload and restart:
@@ -150,7 +150,7 @@ Expected: `OK — Obsidian 1.x.x | Plugin 3.x.x`
 
 | Variable | Example | Description |
 |----------|---------|-------------|
-| `OBSIDIAN_URL` | `https://192.168.1.50:27124` | Full URL including protocol and port |
+| `OBSIDIAN_URL` | `https://192.0.2.50:27124` | Full URL including protocol and port |
 | `OBSIDIAN_API_KEY` | `abc123...` | API key from the plugin settings |
 
 **TLS note:** The plugin uses a self-signed certificate by default. Always use `curl -sk`.

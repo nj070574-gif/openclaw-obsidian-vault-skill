@@ -144,7 +144,7 @@ cp -r openclaw-obsidian-vault-skill/skill ~/.openclaw/workspace/skills/obsidian-
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `OBSIDIAN_URL` | ✅ Yes | Full base URL including protocol and port, e.g. `https://192.168.1.100:27124` |
+| `OBSIDIAN_URL` | ✅ Yes | Full base URL including protocol and port, e.g. `https://192.0.2.100:27124` |
 | `OBSIDIAN_API_KEY` | ✅ Yes | API key from Obsidian → Settings → Local REST API |
 
 Always use `curl -sk` — the plugin uses a self-signed certificate by default.
