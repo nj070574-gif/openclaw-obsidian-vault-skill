@@ -59,7 +59,7 @@ spawned by the exec tool may not inherit them depending on your OpenClaw configu
 ```bash
 echo "URL=$OBSIDIAN_URL KEY_LEN=${#OBSIDIAN_API_KEY}"
 ```
-If either is empty, use hardcoded values in your curl commands for this session.
+If either is empty, the exec shell isn't inheriting the gateway's environment. Fix the inheritance (confirm the `Environment=` lines are in the systemd unit and restart the service), or re-export the vars in the shell by sourcing them from the service config. Never paste the literal API key into commands — it lands in shell history and session logs.
 
 ### 4. Never dump raw JSON to the user
 Always interpret API responses and reply in plain English. See the Output Formatting section.
@@ -99,14 +99,13 @@ sudo systemctl daemon-reload
 sudo systemctl restart openclaw.service
 ```
 
-### 2. Verify env vars are live in the gateway process
+### 2. Verify the env vars are set (without printing the key)
 
 ```bash
-PID=$(pgrep -f "openclaw-gateway" | head -1)
-cat /proc/$PID/environ | tr "\0" "\n" | grep "^OBSIDIAN"
+echo "OBSIDIAN_URL set: ${OBSIDIAN_URL:+yes}  |  API key length: ${#OBSIDIAN_API_KEY}"
 ```
 
-Both `OBSIDIAN_URL` and `OBSIDIAN_API_KEY` should appear with correct values.
+You should see the URL marked set and a non-zero key length. If the key length is `0`, the service isn't passing the variables — re-check the `Environment=` lines in the unit and restart. (Avoid dumping `/proc/<pid>/environ` or otherwise printing the key — it ends up in shell history and logs.)
 
 ### 3. Test the connection
 
@@ -119,7 +118,7 @@ curl -sk \
 
 Expected: `OK — Obsidian 1.x.x | Plugin 3.x.x | Auth: True`
 
-If `$OBSIDIAN_URL` is empty, substitute the literal URL:
+If `$OBSIDIAN_URL` is empty, fix the env inheritance (see Pitfall 3) rather than inlining secrets. Only as a last resort for a one-off test, you can substitute placeholders locally — never commit or log a real key:
 ```bash
 curl -sk \
   -H "Authorization: Bearer YOUR_API_KEY_HERE" \
@@ -130,11 +129,11 @@ curl -sk \
 ### 4. Install the skill
 
 ```bash
-# Via ClawHub
+# Via ClawHub (recommended — versioned + checksum-verified)
 openclaw skills install obsidian-rest
 
-# Or manually
-git clone https://github.com/nj070574-gif/openclaw-obsidian-vault-skill.git
+# Or manually, pinned to a release tag (avoid tracking mutable main)
+git clone --branch v1.2.0 --depth 1 https://github.com/nj070574-gif/openclaw-obsidian-vault-skill.git
 cp -r openclaw-obsidian-vault-skill/skill ~/.openclaw/workspace/skills/obsidian-rest
 ```
 
@@ -147,7 +146,7 @@ cp -r openclaw-obsidian-vault-skill/skill ~/.openclaw/workspace/skills/obsidian-
 | `OBSIDIAN_URL` | ✅ Yes | Full base URL including protocol and port, e.g. `https://192.0.2.100:27124` |
 | `OBSIDIAN_API_KEY` | ✅ Yes | API key from Obsidian → Settings → Local REST API |
 
-Always use `curl -sk` — the plugin uses a self-signed certificate by default.
+The plugin uses a self-signed certificate by default, so these examples use `curl -sk`. ⚠️ `-k` skips TLS certificate verification, so the API key and note contents travel over an **unverified** connection — only acceptable on a trusted LAN. When the traffic crosses any untrusted network, export the plugin's certificate (Obsidian → Settings → Local REST API → download the certificate) and use `curl --cacert /path/to/obsidian-local-rest-api.crt` instead of `-k`, or front the plugin with a reverse proxy holding a properly trusted cert.
 
 ---
 
@@ -232,12 +231,13 @@ Returns HTTP `204 No Content` on success.
 curl -sk -X PATCH \
   -H "Authorization: Bearer $OBSIDIAN_API_KEY" \
   -H "Content-Type: text/markdown" \
-  -H "Obsidian-API-Operation: append" \
-  -H "Heading: My Section Heading" \
+  -H "Operation: append" \
+  -H "Target-Type: heading" \
+  -H "Target: My Section Heading" \
   --data-binary "Content to insert under the heading." \
   "$OBSIDIAN_URL/vault/PATH%2FTO%2FNOTE.md"
 ```
-Valid operations: `append` | `prepend` | `replace`
+Valid `Operation`: `append` | `prepend` | `replace` | `delete`. Valid `Target-Type`: `heading` | `block` | `frontmatter`. (Plugin 3.x headers; older <3.x used a single `Heading` header.)
 
 ---
 
@@ -393,8 +393,8 @@ curl -sk -X POST \
 | `curl: (7) Failed to connect` | Obsidian not running or wrong host/port | Check Obsidian is open; verify `OBSIDIAN_URL` |
 | `{"message":"Not Found","errorCode":40400}` | **Wrong path** — missing trailing slash, or non-existent endpoint | Add `/` to end of directory paths; use only documented endpoints |
 | `HTTP 401 Unauthorized` | Wrong or missing API key | Verify `OBSIDIAN_API_KEY` matches plugin settings |
-| SSL certificate error | Self-signed cert | Always use `curl -sk` — never `curl -s` alone |
-| `$OBSIDIAN_URL` empty in curl | Env var not inherited by exec shell | Test with `echo $OBSIDIAN_URL`; use literal values if empty |
+| SSL certificate error | Self-signed cert | Always use `curl -sk` — never `curl -s` alone (or `--cacert` with the exported plugin certificate for verified TLS) |
+| `$OBSIDIAN_URL` empty in curl | Env var not inherited by exec shell | Confirm the `Environment=` lines are in the unit and restart; re-source the env in the shell. Don't inline the literal key. |
 | Skill shows `△ needs setup` | Env vars not set | Add `Environment=` lines to `openclaw.service`, reload, restart |
 | Obsidian on Windows, agent on Linux | Firewall blocking port | Allow TCP 27124 inbound in Windows Defender Firewall |
 

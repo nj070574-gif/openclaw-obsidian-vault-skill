@@ -7,6 +7,21 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ---
 
+## [1.2.0] — 2026-10-02
+
+### Security
+- Removed `/proc/<pid>/environ` scrape from setup; verify env with a no-print presence check instead.
+- Removed all guidance to hardcode/inline the API key; direct users to fix env inheritance.
+- Added TLS guidance: prefer `--cacert` with the exported plugin certificate over blanket `-k` on untrusted networks.
+
+### Fixed
+- PATCH-at-heading example used the wrong headers; corrected to `Operation` / `Target-Type` / `Target` (plugin 3.x).
+
+### Changed
+- Manual install now pins to a release tag; ClawHub install recommended as primary.
+
+---
+
 ## [1.1.0] — 2026-04-12
 
 ### Added
