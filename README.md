@@ -117,12 +117,12 @@ or
 ## Verify env vars are set correctly
 
 ```bash
-# Check env vars are in the live process
-PID=$(pgrep -f "openclaw-gateway" | head -1)
-cat /proc/$PID/environ | tr '\0' '\n' | grep "^OBSIDIAN"
+# Check the env vars are set WITHOUT printing the secret key
+echo "OBSIDIAN_URL set: ${OBSIDIAN_URL:+yes}  |  API key length: ${#OBSIDIAN_API_KEY}"
 
-# Test the API connection directly
-curl -sk \
+# Test the API connection directly (verified TLS — see SKILL.md "TLS & credential handling")
+CACERT="--cacert $OBSIDIAN_CA_CERT"
+curl -s $CACERT \
   -H "Authorization: Bearer $OBSIDIAN_API_KEY" \
   "$OBSIDIAN_URL/" \
   | python3 -c "import json,sys; d=json.load(sys.stdin); print('OK — Obsidian', d['versions']['obsidian'], '| Plugin', d['versions']['self'])"
@@ -153,7 +153,7 @@ Expected: `OK — Obsidian 1.x.x | Plugin 3.x.x`
 | `OBSIDIAN_URL` | `https://192.0.2.50:27124` | Full URL including protocol and port |
 | `OBSIDIAN_API_KEY` | `abc123...` | API key from the plugin settings |
 
-**TLS note:** The plugin uses a self-signed certificate by default. Always use `curl -sk`.
+**TLS note:** The plugin uses a self-signed certificate by default. Don't disable TLS verification — export the plugin certificate, set `OBSIDIAN_CA_CERT`, and use `curl --cacert "$OBSIDIAN_CA_CERT"` (see the SKILL.md "TLS & credential handling" section). `-k` skips verification and exposes your API key on the wire; use it only on a trusted LAN as a last resort, and rotate the key afterwards.
 
 ---
 
@@ -180,7 +180,7 @@ openclaw-obsidian-vault-skill/
 |---------|-----|
 | `curl: (7) Failed to connect` | Obsidian not running or wrong host/port |
 | `HTTP 401 Unauthorized` | Wrong API key — check plugin settings |
-| SSL certificate error | Use `curl -sk` (self-signed cert) |
+| SSL certificate error | Export the plugin cert, set `OBSIDIAN_CA_CERT`, use `--cacert` (avoid disabling verification) |
 | `HTTP 404` on a file | URL-encode spaces (`%20`) and slashes (`%2F`) |
 | Env var empty inside exec | Add `Environment=` lines to `openclaw.service`, daemon-reload + restart |
 | Skill shows `△ needs setup` | `OBSIDIAN_URL` or `OBSIDIAN_API_KEY` not set |
