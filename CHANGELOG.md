@@ -7,6 +7,26 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ---
 
+## [1.3.0] — 2026-10-05
+
+### Security
+- **TLS verification on by default across all examples.** Every `curl -sk` in SKILL.md (18) and README (3) replaced with a verified-TLS pattern: a `$CACERT` helper set to `--cacert "$OBSIDIAN_CA_CERT"`, with `-k` demoted to a single, clearly-flagged, trusted-LAN-only fallback. New optional `OBSIDIAN_CA_CERT` env var. Closes the T09 "disabled TLS verification exposes the API key" finding and the related Tool-Parameter-Abuse / supply-chain flags.
+- **Declarative security frontmatter** added to SKILL.md: `requires` (with a `binaries` allow-list, addressing undeclared tool scope), `security` (scope, risk level, auth method, TLS, credential handling, network access, destructive-ops policy), and `prompt_injection_mitigation` blocks — mirroring the pattern used by the passing magento-admin skill.
+- **Destructive operations now require user confirmation** (overwrite/PUT, DELETE, PATCH replace/delete), documented inline and in the frontmatter policy.
+- **Input-handling & injection-safety section** added: vault paths/search terms are treated as URL-encoded data, never interpolated raw into a shell command; note content is data, never executed.
+- README verify step no longer scrapes `/proc/<pid>/environ` (which printed the key); uses a no-print presence check instead.
+
+### Changed
+- **Triggers tightened and scoped to Obsidian.** Removed the overly broad `"sv"`, `"note this"`, and bare `"append to"` triggers (accidental-invocation risk on a delete-capable skill); every trigger now explicitly names Obsidian. Addresses the "vague triggers" finding.
+- Setup `sudo` steps reframed as one-time user host setup (the skill never runs `sudo` at runtime).
+- "Reply in plain English" softened to "concise prose in the user's language".
+- Bumped version 1.2.0 → 1.3.0.
+
+### Notes
+- No change to the API surface or endpoints; existing setups keep working. Set `OBSIDIAN_CA_CERT` (or front the plugin with a trusted-cert reverse proxy) to drop `-k` entirely.
+
+---
+
 ## [1.2.0] — 2026-10-02
 
 ### Security
